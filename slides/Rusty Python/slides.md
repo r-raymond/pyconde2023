@@ -295,7 +295,7 @@ pygame.quit()
 
 ---
 layout: image-right
-image: ./tracing.png
+image: /tracing.png
 ---
 
 #### The Logic
@@ -397,6 +397,165 @@ class Line:
 
 ---
 
-#### Verifying that `color` is the Bottleneck
+#### Looking for the Bottleneck
 
-Test
+```bash
+python -m cProfile -o python.prof ray_trace.py
+snakeviz python.prof
+```
+
+<img class="w-100" src="/python_snakeviz.png" />
+
+---
+layout: two-cols-header
+---
+
+#### Looking into more Detail
+
+<template v-slot:left>
+```python
+times = []
+
+def color(x, y):
+    start = time.perf_counter_ns()
+
+    [...]
+
+    end = time.perf_counter_ns()
+    times.append(end - start)
+    return result
+
+[...]
+
+normal_dist = NormalDist.from_samples(times)
+_, bins, _ = plt.hist(times, bins=100, density=True)
+plt.plot(bins,
+    scipy.stats.norm.pdf(
+        bins, normal_dist.mean, normal_dist.stdev
+  )
+)
+[...]
+
+plt.xlim(0, 20000)
+plt.savefig("performance.png")
+```
+</template>
+
+<template v-slot:right>
+<img src="/python_perf.png" />
+</template>
+
+
+---
+layout: two-cols-header
+---
+
+#### Let's Write Some Rust
+
+<template v-slot:left>
+<div class="pr-2">
+```bash
+> maturin new rust
+? 🤷 Which kind of bindings to use?
+❯ pyo3
+  rust-cpython
+  cffi
+  uniffi
+  bin
+📖 Documentation: https://maturin.rs/bindings.html · pyo3
+✨ Done! New project created rust
+```
+
+```bash
+> tree rust
+rust
+├── Cargo.toml
+├── pyproject.toml
+└── src
+    └── lib.rs
+
+1 directory, 3 files
+```
+</div>
+</template>
+
+<template v-slot:right>
+```bash
+> cat rust/pyprojet.toml
+[build-system]
+requires = ["maturin>=0.14,<0.15"]
+build-backend = "maturin"
+
+[project]
+name = "rust"
+requires-python = ">=3.7"
+classifiers = [
+"Programming Language::Rust",
+"Programming Language::Python::Implementation::CPython",
+"Programming Language::Python::Implementation::PyPy",
+]
+
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+```
+</template>
+
+
+---
+layout: two-cols-header
+---
+
+#### Project is Adhering to PEP 517
+
+<template v-slot:left>
+<div class="pr-2">
+```bash
+> python -m build
+* Creating venv isolated environment...
+* Installing packages in isolated environment... (maturin>=0.14,<0.15)
+* Getting build dependencies for sdist...
+* Building sdist...
+Running `maturin pep517 write-sdist --sdist-directory /home/robin/code/pyconde/rust/dist`
+    Updating crates.io index
+  Downloaded windows_i686_msvc v0.42.2
+  [...]
+  Downloaded 8 crates (4.2 MB) in 0.88s
+🔗 Found pyo3 bindings
+🐍 Found CPython 3.10 at /run/user/1000/build-env-2sml89ij/bin/python3
+📡 Using build options features from pyproject.toml
+⚠️  Warning: Attempting to include the sdist output tarball /home/robin/code/pyconde/rust/dist/test-0.1.0.tar.gz into itself! Check 'cargo package --list' output.
+📦 Built source distribution to /home/robin/code/pyconde/rust/dist/test-0.1.0.tar.gz
+rust-0.1.0.tar.gz
+* Building wheel from sdist
+* Creating venv isolated environment...
+* Installing packages in isolated environment... (maturin>=0.14,<0.15)
+* Getting build dependencies for wheel...
+* Building wheel...
+...
+```
+</div>
+</template>
+
+<template v-slot:right>
+```bash
+...
+Running `maturin pep517 build-wheel -i /run/user/1000/build-env-4eylybhs/bin/python --compatibility off`
+🔗 Found pyo3 bindings
+🐍 Found CPython 3.10 at /run/user/1000/build-env-4eylybhs/bin/python
+📡 Using build options features from pyproject.toml
+   Compiling target-lexicon v0.12.6
+   [...]
+   Compiling pyo3-build-config v0.18.2
+   Compiling parking_lot v0.12.1
+   Compiling pyo3-ffi v0.18.2
+   Compiling pyo3 v0.18.2
+   Compiling pyo3-macros-backend v0.18.2
+   Compiling pyo3-macros v0.18.2
+   Compiling rust v0.1.0 (/run/user/1000/build-via-sdist-z39k_xis/test-0.1.0)
+    Finished release [optimized] target(s) in 8.33s
+📦 Built wheel for CPython 3.10 to /run/user/1000/build-via-sdist-z39k_xis/rust-0.1.0/target/wheels/test-0.1.0-cp310-cp310-linux_x86_64.whl
+/run/user/1000/build-via-sdist-z39k_xis/rust-0.1.0/target/wheels/test-0.1.0-cp310-cp310-linux_x86_64.whl
+Successfully built rust-0.1.0.tar.gz and test-0.1.0-cp310-cp310-linux_x86_64.whl
+```
+</template>
