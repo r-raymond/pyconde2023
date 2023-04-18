@@ -292,7 +292,7 @@ pygame.quit()
 
 ---
 layout: image-right
-image: tracing.png
+image: /pyconde2023/tracing.png
 ---
 
 #### The Logic
