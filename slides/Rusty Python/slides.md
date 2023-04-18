@@ -781,6 +781,7 @@ diff --git a/ray_trace.py b/ray_trace.py
 
 
 ---
+
 ## How Slow is Slow?
 
 About **200 ms** response time. Of that we spend about **100ms** executing the graph.

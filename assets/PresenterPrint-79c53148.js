@@ -1,4 +1,4 @@
-import{d,i as _,a as p,u as h,b as u,c as m,e as f,f as n,g as t,t as s,h as a,F as g,r as v,n as y,j as x,o as l,k as b,l as N,m as k,p as P,q as w,_ as S}from"./index-f5957777.js";import{N as V}from"./NoteDisplay-b197f2ca.js";const j={class:"m-4"},L={class:"mb-10"},T={class:"text-4xl font-bold mt-2"},B={class:"opacity-50"},C={class:"text-lg"},D={class:"font-bold flex gap-2"},H={class:"opacity-50"},z=t("div",{class:"flex-auto"},null,-1),F={key:0,class:"border-gray-400/50 mb-8"},M=d({__name:"PresenterPrint",setup(R){_(p),h(`
+import{d,i as _,a as p,u as h,b as u,c as m,e as f,f as n,g as t,t as s,h as a,F as g,r as v,n as y,j as x,o as l,k as b,l as N,m as k,p as P,q as w,_ as S}from"./index-b1f0ef35.js";import{N as V}from"./NoteDisplay-11628f3c.js";const j={class:"m-4"},L={class:"mb-10"},T={class:"text-4xl font-bold mt-2"},B={class:"opacity-50"},C={class:"text-lg"},D={class:"font-bold flex gap-2"},H={class:"opacity-50"},z=t("div",{class:"flex-auto"},null,-1),F={key:0,class:"border-gray-400/50 mb-8"},M=d({__name:"PresenterPrint",setup(R){_(p),h(`
 @page {
   size: A4;
   margin-top: 1.5cm;
