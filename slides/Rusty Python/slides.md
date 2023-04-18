@@ -23,24 +23,26 @@ A Case Study
 # Table of Contents
 
 ## Part 1: Introduction
-* A little intro about Rust
-* Python <> Rust Tooling Overview
+* A little intro to Rust
+* Python <> Rust tooling overview
 
-## Part 2: Let's speed up some Python code
-* Quick intro into the code base
+## Part 2: Let's Speed Up Some Python Code
+* Quick intro to the code base
 * Let's write some Rust to speed it up
 
-## Part 3: A Case Study of using Rust to speed up Python 
-* Problem Statement
-* Approach Taken
+## Part 3: A Case Study of Using Rust to Speed Up Python
+* Problem statement
+* Approach taken
 * Outcome
 
 ---
 
 # What is [Rust](https://www.rust-lang.org/)?
 
+<img class="w-30 my-8" src="/rust.png" />
 
-* **Modern** systems programming language
+
+* **Modern** compiled systems programming language founded in 2015
 * Has similar **performance**[^1] and low-level control as C/C++
 * Prioritizes **memory safety**, **thread safety**, and modern software engineering practices
 
@@ -85,7 +87,7 @@ aarch64-nintendo-switch-freestanding
 Things that Are Awesome About Rust (cont.)
 </div>
 
-* Documentation [hosted versioned in a central place](https://docs.rs/pyo3/0.18.2/pyo3/), with cross links between packages
+* Documentation [hosted in a central place](https://docs.rs/pyo3/0.18.2/pyo3/), with cross links between packages
 
 
 * Ownership Semantics
@@ -115,7 +117,7 @@ Things that Are Awesome About Rust (cont.)
 </div>
 
 * Lifetime Tracking
-```rust {all|2|3-6|7|all}
+```rust
 fn main() {
     let r;
     {
@@ -187,11 +189,9 @@ WHERE organization = ?
 
 ### Some Things that Are Terrible About Rust
 
-* Split 
-* Compilation Time
-
-* Compilation errors are sometimes hard to understand
-
+* Compilation time can be very slow
+* At times Rust is quite verbose
+* Getting lifetime parameters right sometimes feels like a puzzle
 
 ---
 
@@ -216,14 +216,11 @@ WHERE organization = ?
 </div>
 
 <div class="py-4" v-click>
-<h3>Python Embeddings</h3>
+<h3>??? (Python Embedding & ...)</h3>
 <ul>
 <li><a href="https://gregoryszorc.com/docs/pyoxidizer/main/">PyOxidizer</a></li>
 </ul>
 </div>
-
----
-
 
 
 ---
@@ -233,7 +230,7 @@ layout: two-cols-header
 
 <template v-slot:default>
 
-# 2. Let's Speed up some Python Code
+# 2. Let's Speed Up Some Python Code
 
 <div class="flex">
 <img src="/0.png" class="h-24 mx-4"/>
@@ -295,7 +292,7 @@ pygame.quit()
 
 ---
 layout: image-right
-image: /tracing.png
+image: tracing.png
 ---
 
 #### The Logic
@@ -404,13 +401,13 @@ python -m cProfile -o python.prof ray_trace.py
 snakeviz python.prof
 ```
 
-<img class="w-100" src="/python_snakeviz.png" />
+<img class="w-full" src="/python_snakeviz.png" />
 
 ---
 layout: two-cols-header
 ---
 
-#### Looking into more Detail
+#### On Our Way to Micro Benchmarking
 
 <template v-slot:left>
 ```python
@@ -481,7 +478,7 @@ rust
 
 <template v-slot:right>
 ```bash
-> cat rust/pyprojet.toml
+> cat rust/pyproject.toml
 [build-system]
 requires = ["maturin>=0.14,<0.15"]
 build-backend = "maturin"
@@ -559,3 +556,334 @@ Running `maturin pep517 build-wheel -i /run/user/1000/build-env-4eylybhs/bin/pyt
 Successfully built rust-0.1.0.tar.gz and test-0.1.0-cp310-cp310-linux_x86_64.whl
 ```
 </template>
+
+---
+layout: two-cols-header
+---
+
+#### Let's Implement Vector
+
+
+<template v-slot:left>
+<div class="px-2">
+```rust
+#[pyclass]
+#[derive(Clone)]
+struct Vec {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[pymethods]
+impl Vec {
+  #[new]
+  fn init(x: f32, y: f32, z: f32) -> Vec {
+    Vec { x, y, z }
+  }
+
+  fn __add__(&self, o: &Vec) -> Vec {
+    Vec {x: self.x + o.x, y: self.y + o.y, z: self.z + o.z} 
+  }
+
+  fn __sub__(&self, o: &Vec) -> Vec {
+    Vec {x: self.x - o.x, y: self.y - o.y, z: self.z - o.z} 
+  }
+...
+```
+</div>
+</template>
+
+<template v-slot:right>
+```rust
+...
+  fn __mul__(&self, o: &Vec) -> f32 {
+    self.x * o.x + self.y * o.y + self.z * o.z
+  }
+
+  fn len(&self) -> f32 {
+    self.__mul__(&self).sqrt()
+  }
+
+  fn scale(&self, fac: f32) -> Vec {
+    Vec {x: self.x * fac, y: self.y * fac, z: self.z * fac}
+  }
+
+  fn normal(&self) -> Vec {
+    self.scale(1.0 / self.len())
+  }
+
+  fn __repr__(&self) -> String {
+    format!("({}, {}, {})", self.x, self.y, self.z)
+  }
+}
+```
+</template>
+
+---
+
+#### Repl Session
+
+```bash
+maturin develop
+🔗 Found pyo3 bindings
+🐍 Found CPython 3.10 at /home/robin/code/pyconde/env/bin/python
+   Compiling target-lexicon v0.12.6
+   [...]
+   Compiling rust v0.1.0 (/home/robin/code/pyconde/rust)
+    Finished dev [unoptimized + debuginfo] target(s) in 8.36s
+📦 Built wheel for CPython 3.10 to /run/user/1000/.tmpOqgCta/rust-0.1.0-cp310-cp310-linux_x86_64.whl
+🛠 Installed rust-0.1.0
+```
+
+```python
+Python 3.10.9 (main, Dec  6 2022, 18:44:57) [GCC 11.3.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import rust
+>>> x = rust.Vec(1, 2, 3)
+>>> x
+(1, 2, 3)
+>>> x + x
+(2, 4, 6)
+>>> x * x
+14.0
+>>> x.len()
+3.7416574954986572
+>>> type(x)
+<class 'builtins.Vec'>
+```
+
+---
+layout: two-cols-header
+---
+
+#### Sphere
+
+
+<template v-slot:left>
+<div class="px-2">
+```rust
+#[pyclass]
+struct Sphere {
+    pub center: Vec,
+    pub radius: f32,
+}
+
+#[pymethods]
+impl Sphere {
+  #[new]
+  fn init(center: &Vec, radius: f32) -> Sphere {
+    Sphere {
+      center: center.clone(), radius
+    }
+  }
+
+  fn intersect(&self, line: &Line) -> Option<Vec> {
+    let diff = line.start.__sub__(&self.center);
+    let sp = line.dir.__mul__(&diff);
+
+    let rat = 4. * (sp * sp -
+      (diff.__mul__(&diff) - self.radius * self.radius));
+
+...
+```
+</div>
+</template>
+
+<template v-slot:right>
+```rust
+...
+
+    if rat < 0. {
+      return None;
+    }
+
+    let sqrat = rat.sqrt() / 2.0;
+    let t = (-1. * sp + sqrat).min(-1. * sp - sqrat);
+    Some (line.start.__add__(&line.dir.scale(t)))
+  }
+
+  fn get_normal(&self, pos: &Vec) -> Vec {
+    (pos.__sub__(&self.center)).normal()
+  }
+}
+```
+</template>
+
+---
+
+#### Line and Python Module
+
+```rust
+#[pyclass]
+struct Line {
+    pub start: Vec,
+    pub dir: Vec,
+}
+
+#[pymethods]
+impl Line {
+    #[new]
+    fn init(start: &Vec, dir: &Vec) -> Line {
+        Line {
+            start: start.clone(), dir: dir.clone()
+        }
+    }
+}
+
+#[pymodule]
+fn rust(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<Vec>()?;
+    m.add_class::<Sphere>()?;
+    m.add_class::<Line>()?;
+    Ok(())
+}
+```
+
+---
+layout: two-cols-header
+---
+
+#### Making Use of Our Rust Implementation
+
+```bash
+diff --git a/ray_trace.py b/ray_trace.py
+-from python import Vec, Sphere, Line
++from rust import Vec, Sphere, Line
+```
+
+<template v-slot:left>
+  <img src="/python_perf.png" />
+</template>
+<template v-slot:right>
+  <img src="/rust_perf.png" />
+</template>
+
+---
+
+## Comparing Speed Up Solutions
+
+<img src="/comparison.png" class="w-full" />
+
+---
+
+# Part 3: Case Study: Graph Executions
+
+
+<img class="w-full" src="/taktile.png" />
+
+
+---
+
+# Part 3: Case Study: Graph Executions
+
+<img class="w-full" src="/taktile2.png" />
+
+
+---
+## How Slow is Slow?
+
+About **200 ms** response time. Of that we spend about **100ms** executing the graph.
+
+<img class="w-full" src="/slow.png" />
+
+
+---
+
+
+## Spike: Can We Rewrite the Execution Logic in Rust?
+
+<v-clicks>
+
+* Size of Project:
+  * Lambda:
+    ```bash
+    lambda> find . -name '*.py' | xargs wc -l
+    ...
+    871 total 
+    ```
+  * Package:
+    ```bash
+    package> find . -name '*.py' | xargs wc -l
+    ...
+    19070 total 
+    ```
+* Timebox: 3 workdays, 1 developer
+
+</v-clicks>
+
+<div class="font-bold w-full flex justify-center mt-8" v-click>
+<div class="inline-block">
+Goal: Setup a Proof of Concept for Running graph execution in Rust, calling into Python
+</div>
+</div>
+<div class="w-full flex justify-center mt-4" v-click>
+<div class="inline-block">
+Scope: Implement a minimal set of features that allow for a fair comparison (vertical slice)
+</div>
+</div>
+
+---
+
+### Timeline
+
+<img class="w-full" src="/timeline.png" />
+
+---
+
+### Result (The Good)
+
+Graph execution runtime reduced to about **40 ms (from 100 ms)**, giving a **speedup of about 30%** of the **overall** response time.
+<div>
+  <img class="w-full" src="/fast.png" />
+</div>
+
+---
+
+### Result (The Truth)
+
+<v-clicks depth="2">
+
+- About **30% speedup** of response time
+- Significant trouble with any non-pure Python dependency (orjson, pandas, ...)
+- Added complexity to our developer setup
+- Speedup most likely less if we extend the vertical slice
+- Debugging segfaults significantly slows down development time
+- Other things to consider
+  - Hiring Rust developers is hard and expensive
+  - We don't have a lot of Rust expertise in house
+
+</v-clicks>
+
+
+<div class="font-bold text-red-800 w-full flex justify-center mt-8" v-click>
+<div class="inline-block">
+For now we won't continue exploring Rust FFI as a speedup.
+</div>
+</div>
+<div v-click class="mt-8">
+If anyone is interested in cross compiling a statically linked Python to
+Lambda, check out <a href="https://github.com/r-raymond/pyconde-2023">GitHub</a>.
+</div>
+
+
+---
+
+<div class="font-bold w-full flex justify-center mt-8">
+  <div class="inline-block">
+    <div class="py-8 flex flex-col justify-center">
+      <div>Thank you for the attention! Q&A</div>
+      <div class="flex justify-center">
+      <img class="w-32" src="/qr-qanda.png" />
+      </div>
+    </div>
+    <div class="py-8 flex flex-col justify-center">
+      <div>Btw, we are hiring</div>
+      <div class="py-4 flex justify-center">
+      <img class="w-24" src="/qr-code.png" />
+      </div>
+    </div>
+  </div>
+</div>
+
+---
