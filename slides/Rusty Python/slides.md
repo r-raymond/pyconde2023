@@ -42,7 +42,7 @@ A Case Study
 <img class="w-30 my-8" src="/rust.png" />
 
 
-* **Modern** compiled systems programming language founded in 2015
+* **Modern** compiled systems programming language founded in 2010 / stabilized in 2015
 * Has similar **performance**[^1] and low-level control as C/C++
 * Prioritizes **memory safety**, **thread safety**, and modern software engineering practices
 
